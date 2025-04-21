@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الحمام الغزار</title>
+    <style>
+        body { font-family: 'Tahoma', sans-serif; padding: 20px; background: #f9f9f9; }
+        h1 { text-align: center; color: #444; }
+        input, textarea, button {
+            display: block; width: 100%; padding: 10px; margin: 10px 0;
+            font-size: 16px;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #bbb; padding: 10px; text-align: center; }
+        th { background-color: #e0e0e0; }
+    </style>
+</head>
+<body>
+
+<h1>إدارة الحمام الغزار</h1>
+
+<label for="pairCode">اسم/كود الجوز:</label>
+<input type="text" id="pairCode">
+
+<label for="entryDate">تاريخ دخول النتاية على الدكر:</label>
+<input type="date" id="entryDate">
+
+<label for="notes">ملاحظات:</label>
+<textarea id="notes"></textarea>
+
+<button onclick="addPair()">إضافة الزوج</button>
+
+<table id="pairsTable">
+    <thead>
+        <tr>
+            <th>اسم الجوز</th>
+            <th>تاريخ دخول النتاية</th>
+            <th>تاريخ وضع البيض</th>
+            <th>تاريخ الفقس</th>
+            <th>تاريخ الفطام</th>
+            <th>ملاحظات</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<script>
+function addDays(dateString, days) {
+    let date = new Date(dateString);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
+}
+
+function addPair() {
+    let code = document.getElementById('pairCode').value.trim();
+    let entryDate = document.getElementById('entryDate').value;
+    let notes = document.getElementById('notes').value.trim();
+
+    if (!code || !entryDate) {
+        alert('من فضلك أدخل اسم الجوز وتاريخ دخول النتاية.');
+        return;
+    }
+
+    let eggDate = addDays(entryDate, 8);
+    let hatchDate = addDays(eggDate, 18);
+    let weanDate = addDays(hatchDate, 25);
+
+    let tableBody = document.getElementById('pairsTable').getElementsByTagName('tbody')[0];
+    let row = tableBody.insertRow();
+
+    row.innerHTML = `
+        <td>${code}</td>
+        <td>${entryDate}</td>
+        <td>${eggDate}</td>
+        <td>${hatchDate}</td>
+        <td>${weanDate}</td>
+        <td>${notes}</td>
+    `;
+
+    // Clear input fields
+    document.getElementById('pairCode').value = '';
+    document.getElementById('entryDate').value = '';
+    document.getElementById('notes').value = '';
+}
+</script>
+
+</body>
+</html>
