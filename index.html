@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تطبيق إدارة الحمام الغزار</title>
+<style>
+body { font-family: Tahoma; background: #eef4ff; margin: 0; }
+header, footer { background: #4CAF50; color: white; text-align: center; padding: 12px; }
+nav { display: flex; background: #333; }
+nav button { flex: 1; padding: 10px; border: none; background: #333; color: white; cursor: pointer; }
+nav button:hover { background: #4CAF50; }
+section { display: none; padding: 20px; }
+section.active { display: block; }
+input, select, textarea, button { width: 100%; margin: 6px 0; padding: 10px; font-size: 16px; }
+table { width: 100%; margin-top: 10px; border-collapse: collapse; background: white; }
+th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+th { background: #cce0ff; }
+.danger { background: #d9534f; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header><h1>تطبيق إدارة الحمام الغزار</h1></header>
+<nav>
+  <button onclick="showPage('main')">الرئيسية</button>
+  <button onclick="showPage('production')">الإنتاج</button>
+  <button onclick="showPage('followup')">متابعة العلاجات</button>
+</nav>
+
+<section id="main" class="active">
+  <h2>إدارة الأزواج</h2>
+  <input type="text" id="code" placeholder="كود الجوز">
+  <input type="date" id="entry">
+  <textarea id="note" placeholder="ملاحظات"></textarea>
+  <button onclick="addMain()">إضافة</button>
+  <table><thead><tr><th>الكود</th><th>التاريخ</th><th>ملاحظات</th><th>حذف</th></tr></thead><tbody id="mainTable"></tbody></table>
+</section>
+
+<section id="production">
+  <h2>الإنتاج</h2>
+  <select id="prodCode"><option value="">اختر الجوز</option></select>
+  <input type="number" id="eggs" placeholder="عدد البيض">
+  <input type="number" id="hatched" placeholder="عدد الفقس">
+  <button onclick="addProd()">إضافة</button>
+  <table><thead><tr><th>الكود</th><th>بيض</th><th>فقس</th><th>تقييم</th><th>حذف</th></tr></thead><tbody id="prodTable"></tbody></table>
+</section>
+
+<section id="followup">
+  <h2>متابعة العلاجات</h2>
+  <select id="followCode"><option value="">اختر الجوز</option></select>
+  <button onclick="applyToAll()">تطبيق على كل الأزواج</button>
+  <select id="treatmentType" onchange="fillTreatmentDetails()">
+    <option value="">اختر الحالة</option>
+    <option value="الكنكر">الكنكر / الكوكسيديا</option>
+    <option value="السالمونيلا">السالمونيلا</option>
+    <option value="الديدان">الديدان المعوية</option>
+    <option value="الاسهال">الإسهال الأبيض</option>
+    <option value="التورم">التورم / الخراريج</option>
+    <option value="البرد">البرد والزكام</option>
+    <option value="المناعة">تقوية المناعة</option>
+    <option value="الخصوبة">زيادة الخصوبة</option>
+    <option value="بعد المرض">بعد المرض</option>
+  </select>
+  <input type="text" id="followTreatment" placeholder="اسم العلاج">
+  <input type="date" id="followStart">
+  <input type="number" id="followDays" placeholder="مدة العلاج بالأيام">
+  <textarea id="followNotes" placeholder="الجرعة / ملاحظات"></textarea>
+  <button onclick="addFollowUp()">إضافة العلاج</button>
+  <table><thead><tr><th>كود</th><th>الحالة</th><th>العلاج</th><th>من</th><th>إلى</th><th>ملاحظات</th><th>حذف</th></tr></thead><tbody id="followTable"></tbody></table>
+</section>
+
+<footer>تصميم وتطوير: أحمد خير</footer>
+
+<script>
+const treatments = {
+  "الكنكر": { name: "فلاجيل 250 مجم (15 جنيه)", days: 5, notes: "1/8 قرص بالفم أو في الماء" },
+  "السالمونيلا": { name: "أمبيفلوكس 500 مجم (10 جنيه)", days: 6, notes: "1/8 قرص مرتين يوميًا" },
+  "الديدان": { name: "فلوفيرمال شراب أطفال (12 جنيه)", days: 1, notes: "1 سم بالفم ويُكرر بعد 14 يوم" },
+  "الاسهال": { name: "سبترين شراب أطفال (8 جنيه)", days: 5, notes: "1 سم يوميًا بالفم" },
+  "التورم": { name: "كيورام 625 بديل أوجمنتين (20 جنيه)", days: 5, notes: "1/8 قرص بالفم" },
+  "البرد": { name: "كلاريتين أقراص (18 جنيه)", days: 5, notes: "1/8 قرص يوميًا" },
+  "المناعة": { name: "عسل + فيتامين C (5 جنيه تقريبًا)", days: 7, notes: "1 ملعقة صغيرة + نصف قرص في الماء" },
+  "الخصوبة": { name: "Evion 400 + سيلينيوم (12 جنيه)", days: 3, notes: "كبسولة لكل لتر ماء" },
+  "بعد المرض": { name: "بي كومبلكس أقراص (10 جنيه)", days: 3, notes: "1/8 قرص أو في الماء" }
+};
+
+function showPage(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function addMain() {
+  const code = document.getElementById("code").value.trim();
+  const entry = document.getElementById("entry").value;
+  const note = document.getElementById("note").value.trim();
+  if (!code || !entry) return alert("يرجى إدخال الكود والتاريخ");
+  const obj = { id: Date.now(), code, entry, note };
+  const list = JSON.parse(localStorage.getItem("mains") || "[]");
+  list.push(obj);
+  localStorage.setItem("mains", JSON.stringify(list));
+  renderMain(obj);
+  updateDropdowns();
+  document.getElementById("code").value = "";
+  document.getElementById("entry").value = "";
+  document.getElementById("note").value = "";
+}
+
+function renderMain(obj) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${obj.code}</td><td>${obj.entry}</td><td>${obj.note}</td><td><button class='danger' onclick='delMain(${obj.id}, this)'>X</button></td>`;
+  document.getElementById("mainTable").appendChild(tr);
+}
+
+function delMain(id, btn) {
+  let list = JSON.parse(localStorage.getItem("mains") || "[]");
+  list = list.filter(x => x.id !== id);
+  localStorage.setItem("mains", JSON.stringify(list));
+  btn.closest("tr").remove();
+  updateDropdowns();
+}
+
+function updateDropdowns() {
+  const codes = JSON.parse(localStorage.getItem("mains") || "[]").map(x => x.code);
+  const selects = ["prodCode", "followCode"];
+  selects.forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = "<option value=''>اختر الجوز</option>";
+    codes.forEach(code => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = code;
+      select.appendChild(opt);
+    });
+  });
+}
+
+function fillTreatmentDetails() {
+  const type = document.getElementById("treatmentType").value;
+  if (treatments[type]) {
+    document.getElementById("followTreatment").value = treatments[type].name;
+    document.getElementById("followDays").value = treatments[type].days;
+    document.getElementById("followNotes").value = treatments[type].notes;
+  }
+}
+
+function addFollowUp(code = null) {
+  const selectedCode = code || document.getElementById("followCode").value;
+  const type = document.getElementById("treatmentType").value;
+  const name = document.getElementById("followTreatment").value.trim();
+  const start = document.getElementById("followStart").value;
+  const days = parseInt(document.getElementById("followDays").value);
+  const notes = document.getElementById("followNotes").value.trim();
+  if (!selectedCode || !type || !name || !start || isNaN(days)) return alert("يرجى ملء البيانات");
+
+  const end = new Date(new Date(start).getTime() + (days - 1) * 86400000).toISOString().split("T")[0];
+  const row = document.createElement("tr");
+  row.innerHTML = `<td>${selectedCode}</td><td>${type}</td><td>${name}</td><td>${start}</td><td>${end}</td><td>${notes}</td><td><button class='danger' onclick='this.closest("tr").remove()'>X</button></td>`;
+  document.getElementById("followTable").appendChild(row);
+}
+
+function applyToAll() {
+  const codes = JSON.parse(localStorage.getItem("mains") || "[]").map(x => x.code);
+  codes.forEach(code => addFollowUp(code));
+}
+
+function addProd() {
+  const code = document.getElementById("prodCode").value;
+  const eggs = parseInt(document.getElementById("eggs").value);
+  const hatched = parseInt(document.getElementById("hatched").value);
+  if (!code || isNaN(eggs) || isNaN(hatched)) return alert("الرجاء ملء كل البيانات");
+  const rate = hatched / eggs >= 1 ? "ممتاز" : hatched / eggs >= 0.5 ? "متوسط" : "ضعيف";
+  const obj = { id: Date.now(), code, eggs, hatched, rate };
+  const list = JSON.parse(localStorage.getItem("prods") || "[]");
+  list.push(obj);
+  localStorage.setItem("prods", JSON.stringify(list));
+  renderProd(obj);
+  document.getElementById("eggs").value = "";
+  document.getElementById("hatched").value = "";
+}
+
+function renderProd(obj) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${obj.code}</td><td>${obj.eggs}</td><td>${obj.hatched}</td><td>${obj.rate}</td>
+                  <td><button class='danger' onclick='this.closest("tr").remove()'>X</button></td>`;
+  document.getElementById("prodTable").appendChild(tr);
+}
+
+window.onload = () => {
+  JSON.parse(localStorage.getItem("mains") || "[]").forEach(renderMain);
+  JSON.parse(localStorage.getItem("prods") || "[]").forEach(renderProd);
+  updateDropdowns();
+};
+</script>
+</body>
+</html>
